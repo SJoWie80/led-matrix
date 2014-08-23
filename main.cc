@@ -123,8 +123,10 @@ public:
    ***************************************************************************
 */
 
-#define NUM_BOARDS 10
+// amount of history to keep for detecting a cycle
+#define NUM_BOARDS 1024
 
+// width and height of board
 #define WIDTH 32
 #define HEIGHT 32
 
