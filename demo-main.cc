@@ -86,7 +86,7 @@ public:
     // We have up to column 64 one direction, then folding around. Lets map
     if (y > 31) {
       x = 191 - x;
-      y = 95 - y;
+      y = 63 - y;
     }
     delegatee_->SetPixel(x, y, red, green, blue);
   }
@@ -387,6 +387,8 @@ static int usage(const char *progname) {
           "Default: 32\n"
           "\t-c <chained>  : Daisy-chained boards. Default: 1.\n"
           "\t-L            : 'Large' display, composed out of 4 times 32x32\n"
+          "\t-V            : 'Verry Large' display, composed out of 6 times 32x32\n"
+          "\t-m <ms>       : Scroll speed 0 for disable\n"
           "\t-p <pwm-bits> : Bits used for PWM. Something between 1..11\n"
           "\t-l            : Don't do luminance correction (CIE1931)\n"
           "\t-D <demo-nr>  : Always needs to be set\n"
@@ -422,7 +424,7 @@ int main(int argc, char *argv[]) {
   const char *demo_parameter = NULL;
 
   int opt;
-  while ((opt = getopt(argc, argv, "dlD:t:r:p:c:m:L")) != -1) {
+  while ((opt = getopt(argc, argv, "dlD:t:r:p:c:m:L:V")) != -1) {
     switch (opt) {
     case 'D':
       demo = atoi(optarg);
