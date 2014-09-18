@@ -59,6 +59,35 @@ public:
     delegatee_->SetPixel(x, y, red, green, blue);
   }
 
+class LargeSquare96x64Canvas : public Canvas {
+public:
+  // This class takes over ownership of the delegatee.
+  LargeSquare96x64Canvas(Canvas *delegatee) : delegatee_(delegatee) {
+    // Our assumptions of the underlying geometry:
+    assert(delegatee->height() == 32);
+    assert(delegatee->width() == 192);
+  }
+  virtual ~LargeSquare96x64Canvas() { delete delegatee_; }
+
+  virtual void Clear() { delegatee_->Clear(); }
+  virtual void Fill(uint8_t red, uint8_t green, uint8_t blue) {
+    delegatee_->Fill(red, green, blue);
+  }
+  virtual int width() const { return 96; }
+  virtual int height() const { return 64; }
+  virtual void SetPixel(int x, int y,
+                        uint8_t red, uint8_t green, uint8_t blue) {
+    if (x < 0 || x >= width() || y < 0 || y >= height()) return;
+    // We have up to column 64 one direction, then folding around. Lets map
+    if (y > 31) {
+      x = 191 - x;
+      y = 95 - y;
+    }
+    delegatee_->SetPixel(x, y, red, green, blue);
+  }
+
+
+
 private:
   Canvas *delegatee_;
 };
@@ -382,6 +411,7 @@ int main(int argc, char *argv[]) {
   int scroll_ms = 30;
   int pwm_bits = -1;
   bool large_display = false;
+  bool verry_large_display = false;
   bool do_luminance_correct = true;
 
   const char *demo_parameter = NULL;
@@ -427,7 +457,14 @@ int main(int argc, char *argv[]) {
       rows = 32;
       large_display = true;
       break;
-
+      
+    case 'VL':
+      // The 'large' display assumes a chain of six displays with 32x32
+      chain = 6;
+      rows = 32;
+      verry_large_display = true;
+      break;
+      
     default: /* '?' */
       return usage(argv[0]);
     }
