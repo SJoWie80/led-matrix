@@ -59,6 +59,11 @@ public:
     delegatee_->SetPixel(x, y, red, green, blue);
   }
 
+private:
+Canvas *delegatee_;
+};
+
+
 class LargeSquare96x64Canvas : public Canvas {
 public:
   // This class takes over ownership of the delegatee.
