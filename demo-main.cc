@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {
       large_display = true;
       break;
       
-    case 'VL':
+    case 'V':
       // The 'large' display assumes a chain of six displays with 32x32
       chain = 6;
       rows = 32;
@@ -532,6 +532,10 @@ int main(int argc, char *argv[]) {
     canvas = new LargeSquare64x64Canvas(canvas);
   }
 
+  if (verry_large_display) {
+    // Mapping the coordinates of a 32x128 display mapped to a square of 64x64
+    canvas = new LargeSquare96x64Canvas(canvas);
+  }
   // The ThreadedCanvasManipulator objects are filling
   // the matrix continuously.
   ThreadedCanvasManipulator *image_gen = NULL;
