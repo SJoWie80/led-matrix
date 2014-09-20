@@ -101,6 +101,155 @@ private:
  * The following are demo image generators. They all use the utility
  * class ThreadedCanvasManipulator to generate new frames.
  */
+ 
+ /* ***************************************************************************
+Conway's Game of Life Demo
+Dr. Scott M. Baker, smbaker@gmail.com
+This MatrixManipulator implements Conway's Game of Life.
+The board is randomly seeded. After that, the board is updated according to
+the following rules:
+1) A cell with less than two neighbors dies due to underpopulation
+2) A cell with exactly 2 or 3 neighbors continues to live
+3) A cell with more than three neighbors dies due to overpopulation
+4) An empty spot with exactly three live neighbors becomes live, due to
+reprorduction.
+(see http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+Edges of the board wrap around to the opposing edge. For example, the 32nd
+column is identical to the 1st column.
+The board continues to be updated until a cycle is detected. The cycle will
+be displayed for 25 updates and then the board will be re-seeded.
+***************************************************************************
+*/
+#define NUM_BOARDS 10
+#define WIDTH 32
+#define HEIGHT 32
+#define XY(x,y) ((y)*HEIGHT+(x))
+class Conway : public RGBMatrixManipulator {
+public:
+int *boards[NUM_BOARDS];
+int curBoardIndex;
+int liveR, liveG, liveB;
+Conway(RGBMatrix *m) : RGBMatrixManipulator(m) {
+liveR = 0;
+liveG = 0;
+liveB = 192;
+curBoardIndex = 0;
+for (int i=0; i<NUM_BOARDS; i++) {
+boards[i] = (int*) malloc(HEIGHT * WIDTH * sizeof(int));
+bzero(boards[i], HEIGHT * WIDTH * sizeof(int));
+}
+}
+void Run() {
+int cycleCount = 0;
+SeedBoard();
+while (running_) {
+int *curBoard = boards[curBoardIndex];
+for (int x=0; x<32; x++) {
+for (int y=0; y<32; y++) {
+int live = curBoard[XY(x,y)];
+matrix_->SetPixel(x,y, live * liveR, live * liveG, live * liveB);
+}
+}
+usleep(100*1000);
+UpdateBoard();
+if (cycleCount>0) {
+cycleCount = cycleCount - 1;
+if (cycleCount==0) {
+SeedBoard();
+}
+} else {
+if (CheckCycle()) {
+// once a cycle is detected, display it for a while before
+// resetting the board.
+cycleCount = 25;
+}
+}
+}
+}
+int GetBoard(int x, int y) {
+if (x<0) {
+x=x+32;
+}
+if (y<0) {
+y=y+32;
+}
+if (x>=32) {
+x=x-32;
+}
+if (y>=32) {
+y=y-32;
+}
+return boards[curBoardIndex][XY(x,y)];
+}
+void SetBoard(int x, int y, int j) {
+if (x<0) {
+x=x+32;
+}
+if (y<0) {
+y=y+32;
+}
+if (x>=32) {
+x=x-32;
+}
+if (y>=32) {
+y=y-32;
+}
+boards[curBoardIndex][XY(x,y)] = j;
+}
+void UpdateBoard() {
+int *newBoard;
+int newBoardIndex;
+newBoardIndex = curBoardIndex + 1;
+if (newBoardIndex >= NUM_BOARDS) {
+newBoardIndex = newBoardIndex - NUM_BOARDS;
+}
+newBoard = boards[newBoardIndex];
+for (int x=0; x<32; x++) {
+for (int y=0; y<32; y++) {
+int neighbors = 0;
+for (int nx=x-1; nx<=x+1; nx++) {
+for (int ny=y-1; ny<=y+1; ny++) {
+if ((nx!=x) || (ny!=y)) {
+neighbors += GetBoard(nx,ny);
+}
+}
+}
+int live = GetBoard(x,y);
+newBoard[XY(x,y)] = 0;
+if ((live) && (neighbors>=2) && (neighbors<=3)) {
+newBoard[XY(x,y)] = 1;
+} else if ((!live) && (neighbors==3)) {
+newBoard[XY(x,y)] = 1;
+}
+}
+}
+curBoardIndex = newBoardIndex;
+}
+int CheckCycle() {
+for(int i=0; i<NUM_BOARDS; i++) {
+if (i==curBoardIndex) {
+continue;
+}
+if (memcmp(boards[curBoardIndex], boards[i], HEIGHT*WIDTH*sizeof(int)) == 0) {
+return 1;
+}
+}
+return 0;
+}
+void SeedBoard() {
+int *board = boards[curBoardIndex];
+for (int x=0; x<32; x++) {
+for (int y=0; y<32; y++) {
+if (random()%3==1) {
+board[XY(x,y)] = 1;
+} else {
+board[XY(x,y)] = 0;
+}
+}
+}
+}
+};
+ 
 
 // Simple generator that pulses through RGB and White.
 class ColorPulseGenerator : public ThreadedCanvasManipulator {
@@ -571,6 +720,11 @@ int main(int argc, char *argv[]) {
 
   case 5:
     image_gen = new GrayScaleBlock(canvas);
+    break;
+  }
+
+  case 6:
+    image_gen = new Conway(&m);
     break;
   }
 
