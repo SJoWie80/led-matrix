@@ -2,5 +2,5 @@
 while :
 do
         files=(/home/pi/images/art/*)
-        /home/pi/test/led-matrix -V -p 3 -t 15 -m 0 -D 1 "${files[RANDOM % ${#files[@]}]}"
+        /home/pi/led-matrix/led-matrix -V -p 3 -t 15 -m 0 -D 1 "${files[RANDOM % ${#files[@]}]}"
 done
