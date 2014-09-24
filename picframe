@@ -1,6 +1,11 @@
 #!/bin/bash
 while :
 do
+        sleep 1
         files=(/home/pi/images/art/*)
-        /home/pi/led-matrix/led-matrix -V -p 3 -t 15 -m 0 -D 1 "${files[RANDOM % ${#files[@]}]}"
+        /home/pi/led-matrix/led-matrix -V -t 30 -m 0 -D 1 "${files[RANDOM % ${#files[@]}]}" -p5
+        sleep 1
+        files=(/home/pi/images/art/*)
+        /home/pi/led-matrix/led-matrix -V -t 30 -m 0 -D 1 "${files[RANDOM % ${#files[@]}]}" -p5
+       sudo python /home/pi/led-matrix/openhab.py
 done
