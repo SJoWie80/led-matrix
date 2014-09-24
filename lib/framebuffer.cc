@@ -129,7 +129,7 @@ inline uint16_t RGBMatrix::Framebuffer::MapColor(uint8_t c) {
   if (do_luminance_correct_) {
     // We're leaking this table. So be it :)
     static uint16_t *luminance_lookup = CreateLuminanceCIE1931LookupTable();
-    return COLOR_OUT_BITS(luminance_lookup[c]);
+    return COLOR_OUT_BITS(luminance_lookup[c])>>2;
   } else {
     enum {shift = kBitPlanes - 8};  //constexpr; shift to be left aligned.
     return COLOR_OUT_BITS((shift > 0) ? (c << shift) : (c >> -shift));
