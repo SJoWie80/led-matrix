@@ -2,7 +2,7 @@ CFLAGS=-Wall -O3 -g
 CXXFLAGS=-Wall -O3 -g
 OBJECTS=main.o gpio.o led-matrix.o thread.o
 BINARIES=led-matrix
-LDFLAGS=-lrt -lm -lpthread
+LDFLAGS=-lrt -lm -lpthread -lgif
 
 all : $(BINARIES)
 

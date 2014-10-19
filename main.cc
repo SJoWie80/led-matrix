@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <gif_lib.h>
 
 #include <algorithm>
 
@@ -334,6 +335,120 @@ private:
   }
 };
 
+/* cropping animated gif:
+       convert pacman.gif -coalesce -repage 0x0 -crop 107x107+108+89 +repage pacman107x107.gif
+   resizing:
+       convert pacman107x107.gif -filter point -resize 32x32 pacman32x32a.gif
+*/
+
+class GifAnimator: public RGBMatrixManipulator {
+public:
+  char *fn;
+  GifFileType *gif;
+  int rotation;
+  int frameDelay;
+  int xOff;
+  int yOff;
+  char *transColor;
+  int transR, transG, transB;
+
+  GifAnimator(RGBMatrix *m, char *fn, int aFrameDelay=30000, int aXOff=0, int aYOff=0, int aRotation=0, char *aTransColor=NULL) : RGBMatrixManipulator(m) {
+      LoadGif(fn);
+      rotation = 0;
+      frameDelay = aFrameDelay;
+      xOff = aXOff;
+      yOff = aYOff;
+      rotation = aRotation;
+
+      transColor = aTransColor;
+      if (transColor != NULL) {
+          int tc = (int) strtol(transColor, NULL, 16);
+          transR = (tc>>16);
+          transG = (tc>>8) & 0xFF;
+          transB = tc & 0xFF;
+      }
+  }
+
+  int LoadGif(char *fn) {
+    int result;
+
+    gif = DGifOpenFileName(fn);
+    if (gif==NULL) {
+        fprintf(stderr, "failed to open %s\n", fn);
+        exit(-1);
+    }
+
+    result = DGifSlurp(gif);
+    if (result != GIF_OK) {
+        fprintf(stderr, "failed to read gif\n");
+        exit(-1);
+    }
+
+    return 1;
+  }
+
+  void DisplaySavedImage(SavedImage *img) {
+      int transparentIndex = -1;
+
+      if (transColor != NULL) {
+          for (int i=0; i<img->ExtensionBlockCount; i++) {
+              ExtensionBlock *eb = &img->ExtensionBlocks[i];
+              if (eb->Function==0xF9) {
+                  transparentIndex = eb->Bytes[3];
+              }
+          }
+      }
+
+      for (int y=0; y<matrix_->height(); y++) {
+          for (int x=0; x<matrix_->width(); x++) {
+              unsigned char index;
+              int px, py;
+              GifColorType c;
+
+              if (rotation == 0) {
+                  px=x;
+                  py=y;
+              } else if (rotation == 1) {
+                  px=y;
+                  py=matrix_->width()-x-1;
+              } else if (rotation == 2) {
+                  px=matrix_->width()-x-1;
+                  py=matrix_->height()-y-1;
+              } else {
+                  px=matrix_->height()-y-1;
+                  py=x;
+              }
+
+              index = img->RasterBits[(py+yOff)*gif->SWidth+(px+xOff)];
+
+              if (index == transparentIndex) {
+                 matrix_->SetPixel(x,y,transR,transG,transB);
+              } else {
+                  if (img->ImageDesc.ColorMap!=NULL) {
+                      c = img->ImageDesc.ColorMap->Colors[index];
+                  } else {
+                      c = gif->SColorMap->Colors[index];
+                  }
+
+                  matrix_->SetPixel(x, y, c.Red, c.Green, c.Blue);
+              }
+          }
+      }
+  }
+
+  void Run() {
+    int imageIndex = 0;
+    while (running_) {
+        DisplaySavedImage(&gif->SavedImages[imageIndex]);
+        usleep(frameDelay);
+        imageIndex ++;
+        if (imageIndex >= gif->ImageCount) {
+            imageIndex = 0;
+        }
+    }
+  }
+};
+
 class ImageScroller : public RGBMatrixManipulator {
 public:
   ImageScroller(RGBMatrix *m, int scroll_jumps)
@@ -451,11 +566,16 @@ static int usage(const char *progname) {
 int main(int argc, char *argv[]) {
   bool as_daemon = false;
   int runtime_seconds = -1;
+  int frameDelay = 30000;
   int demo = -1;
+  int xOff = 0;
+  int yOff = 0;
+  int rotation =0;
+  char *transColor = NULL;
   const char *demo_parameter = NULL;
 
   int opt;
-  while ((opt = getopt(argc, argv, "D:t:d")) != -1) {
+  while ((opt = getopt(argc, argv, "D:t:df:x:y:r:c:")) != -1) {
     switch (opt) {
     case 'D':
       demo = atoi(optarg);
@@ -467,6 +587,26 @@ int main(int argc, char *argv[]) {
 
     case 't':
       runtime_seconds = atoi(optarg);
+      break;
+
+    case 'f':
+      frameDelay = atoi(optarg)*1000;
+      break;
+
+    case 'x':
+      xOff = atoi(optarg);
+      break;
+
+    case 'y':
+      yOff = atoi(optarg);
+      break;
+
+    case 'r':
+      rotation = atoi(optarg);
+      break;
+
+    case 'c':
+      transColor = optarg;
       break;
 
     default: /* '?' */
@@ -489,7 +629,7 @@ int main(int argc, char *argv[]) {
             argv[0]);
     return 1;
   }
-    
+
   if (as_daemon) {
     if (fork() != 0)
       return 0;
@@ -504,7 +644,7 @@ int main(int argc, char *argv[]) {
 
   // The matrix, our 'frame buffer'.
   RGBMatrix m(&io);
-    
+
   // The RGBMatrixManipulator objects are filling
   // the matrix continuously.
   RGBMatrixManipulator *image_gen = NULL;
@@ -536,6 +676,16 @@ int main(int argc, char *argv[]) {
 
   case 5:
     image_gen = new Conway(&m);
+    break;
+
+  case 6:
+    if (demo_parameter) {
+      GifAnimator *animator = new GifAnimator(&m, (char*) demo_parameter, frameDelay, xOff, yOff, rotation, transColor);
+      image_gen = animator;
+    } else {
+      fprintf(stderr, "Demo %d Requires FID image as parameter\n", demo);
+      return 1;
+    }
     break;
   }
 
