@@ -550,14 +550,20 @@ static int usage(const char *progname) {
           "\t                /etc/init.d, but also when running without\n"
           "\t                terminal.\n"
           "\t-t <seconds>  : Run for these number of seconds, then exit\n"
-          "\t       (if neither -d nor -t are supplied, waits for <RETURN>)\n");
+          "\t       (if neither -d nor -t are supplied, waits for <RETURN>)\n"
+          "\t-x <n>        : GifAnimator, x offset\n"
+          "\t-y <n>        : GifAnimator, y offset\n"
+          "\t-f <n>	   : GifAnimator, frame delay in milliseconds\n"
+          "\t-r [0-3]      : GifAnimator, rotate 90 degree intervals\n"
+          "\t-c #rrggbb    : GifAnimator, set transparent color\n");
   fprintf(stderr, "Demos, choosen with -D\n");
   fprintf(stderr, "\t0  - some rotating square\n"
           "\t1  - forward scrolling an image\n"
           "\t2  - backward scrolling an image\n"
           "\t3  - test image: a square\n"
           "\t4  - Pulsing color\n"
-          "\t5  - Conway's game of life\n");
+          "\t5  - Conway's game of life\n"
+          "\t6  - Display animated gif\n");
   fprintf(stderr, "Example:\n\t%s -t 10 -D 1 runtext.ppm\n"
           "Scrolls the runtext for 10 seconds\n", progname);
   return 1;
