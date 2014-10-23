@@ -387,6 +387,24 @@ public:
     return 1;
   }
 
+  int CheckJoystick() {
+      IoBits b;
+
+      b.raw = matrix_->GetInput();
+
+      if (!b.bits.joy_u) {
+         rotation=2;
+      } else if (!b.bits.joy_d) {
+         rotation=0;
+      } else if (!b.bits.joy_r) {
+         rotation=3;
+      } else if (!b.bits.joy_l) {
+         rotation=1;
+      }
+
+      //fprintf(stdout, "%d %d %d %d %d\n", b.bits.joy_u, b.bits.joy_d, b.bits.joy_l, b.bits.joy_r, b.bits.joy_c);
+  }
+
   void DisplaySavedImage(SavedImage *img) {
       int transparentIndex = -1;
 
@@ -439,6 +457,7 @@ public:
   void Run() {
     int imageIndex = 0;
     while (running_) {
+        CheckJoystick();
         DisplaySavedImage(&gif->SavedImages[imageIndex]);
         usleep(frameDelay);
         imageIndex ++;
