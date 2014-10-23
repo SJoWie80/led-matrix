@@ -7,6 +7,32 @@
 #include <stdint.h>
 #include "gpio.h"
 
+  union IoBits {
+    struct {
+      unsigned int unused1 : 2;  // 0..1
+      unsigned int output_enable : 1;  // 2
+      unsigned int clock  : 1;   // 3
+      unsigned int strobe : 1;   // 4
+      unsigned int joy_u : 1;
+      unsigned int joy_d : 1;
+      unsigned int row : 4;  // 7..10
+      unsigned int unused3a :1; // 11
+      unsigned int joy_l : 1; // 12
+      unsigned int joy_r : 1; // 13
+      unsigned int unused3b : 3;  // 14..16
+      unsigned int r1 : 1;   // 17
+      unsigned int g1 : 1;   // 18
+      unsigned int joy_c : 1; // 19
+      unsigned int unused4 : 2; // 20..21
+      unsigned int b1 : 1;   // 22
+      unsigned int r2 : 1;   // 23
+      unsigned int g2 : 1;   // 24
+      unsigned int b2 : 1;   // 25
+    } bits;
+    uint32_t raw;
+    IoBits() : raw(0) {}
+  };
+
 class RGBMatrix {
  public:
   RGBMatrix(GPIO *io);
@@ -21,10 +47,11 @@ class RGBMatrix {
   void SetPixel(uint8_t x, uint8_t y,
                 uint8_t red, uint8_t green, uint8_t blue);
 
+   int GetInput(void) { return io_->Read(); }
+
   // Updates the screen once. Call this in a continous loop in some realtime
   // thread.
   void UpdateScreen();
-
 
 private:
   GPIO *const io_;
@@ -34,27 +61,6 @@ private:
     kChainedBoards = 1,   // Number of boards that are daisy-chained.
     kColumns = kChainedBoards * 32,
     kPWMBits = 4          // maximum PWM resolution.
-  };
-
-  union IoBits {
-    struct {
-      unsigned int unused1 : 2;  // 0..1
-      unsigned int output_enable : 1;  // 2
-      unsigned int clock  : 1;   // 3
-      unsigned int strobe : 1;   // 4
-      unsigned int unused2 : 2;  // 5..6
-      unsigned int row : 4;  // 7..10
-      unsigned int unused3 : 6;  // 11..16
-      unsigned int r1 : 1;   // 17
-      unsigned int g1 : 1;   // 18
-      unsigned int unused4 : 3;
-      unsigned int b1 : 1;   // 22
-      unsigned int r2 : 1;   // 23
-      unsigned int g2 : 1;   // 24
-      unsigned int b2 : 1;   // 25
-    } bits;
-    uint32_t raw;
-    IoBits() : raw(0) {}
   };
 
   // A double row represents row n and n+16. The physical layout of the
