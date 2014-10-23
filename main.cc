@@ -387,7 +387,7 @@ public:
     return 1;
   }
 
-  int CheckJoystick() {
+  void CheckJoystick() {
       IoBits b;
 
       b.raw = matrix_->GetInput();
@@ -588,6 +588,100 @@ static int usage(const char *progname) {
   return 1;
 }
 
+class Controller : public Thread {
+protected:
+  int running_;
+  RGBMatrix *matrix_;
+  RGBMatrixManipulator *image_gen_;
+  IoBits lastBits;
+  int image_gen_index_;
+  int image_gen_count_;
+
+public:
+  Controller(RGBMatrix *aMat) {
+      matrix_ = aMat;
+      running_ = true;
+      image_gen_ = NULL;
+      image_gen_index_ = 0;
+      image_gen_count_ = 5;
+  }
+
+  ~Controller() {
+      running_ = false;
+  }
+
+  void LaunchImageGenerator(int index) {
+      switch (index) {
+          case 0:
+              image_gen_ = new GifAnimator(matrix_, (char*) "gifs/pacman32x32.gif", 30000, 0, 0, 3, NULL);
+              break;
+
+          case 1:
+              image_gen_ = new GifAnimator(matrix_, (char*) "gifs/mario32x32.gif", 90000, 0, 0, 3, (char*) "#000000");
+              break;
+
+          case 2:
+              image_gen_ = new GifAnimator(matrix_, (char*) "gifs/pbj33x35b.gif", 120000, 0, 3, 3, NULL);
+              break;
+
+          case 3:
+              image_gen_ = new GifAnimator(matrix_, (char*) "gifs/pumpkin32x32.gif", 120000, 0, 0, 3, NULL);
+              break;
+
+          case 4:
+              image_gen_ = new Conway(matrix_);
+              break;
+      }
+
+      image_gen_ -> Start();
+  }
+
+  void NextImageGenerator() {
+      image_gen_index_ = image_gen_index_ + 1;
+      if (image_gen_index_ >= image_gen_count_) {
+          image_gen_index_ = 0;
+      }
+      LaunchImageGenerator(image_gen_index_);
+  }
+
+  void sw1_up() {
+      matrix_ -> DecrementBrightness();
+  }
+
+  void sw2_up() {
+      if (image_gen_) {
+          delete image_gen_;
+          image_gen_ = NULL;
+
+          NextImageGenerator();
+      }
+  }
+
+  void Run() {
+    LaunchImageGenerator(image_gen_index_);
+    while (running_) {
+      IoBits b;
+
+      b.raw = matrix_->GetInput();
+
+      if ((!b.bits.sw1) && (lastBits.bits.sw1)) {
+          sw1_up();
+      }
+      if ((!b.bits.sw2) && (lastBits.bits.sw2)) {
+          sw2_up();
+      }
+
+      lastBits.raw = b.raw;
+
+      usleep(10 * 1000);
+    }
+    if (image_gen_ != NULL) {
+      delete image_gen_;
+      image_gen_ = NULL;
+    }
+  }
+};
+
 int main(int argc, char *argv[]) {
   bool as_daemon = false;
   int runtime_seconds = -1;
@@ -598,6 +692,7 @@ int main(int argc, char *argv[]) {
   int rotation =0;
   char *transColor = NULL;
   const char *demo_parameter = NULL;
+  class Controller *controller = NULL;
 
   int opt;
   while ((opt = getopt(argc, argv, "D:t:df:x:y:r:c:")) != -1) {
@@ -712,17 +807,26 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     break;
+
+  case 7:
+    controller = new Controller(&m);
+    break;
   }
 
-  if (image_gen == NULL)
+  if ((image_gen == NULL) && (controller == NULL)) {
     return usage(argv[0]);
+  }
 
   // the DisplayUpdater continuously pushes the matrix
   // content to the display.
   RGBMatrixManipulator *updater = new DisplayUpdater(&m);
   updater->Start(10);   // high priority
 
-  image_gen->Start();
+  if (controller != NULL) {
+      controller->Start();
+  } else {
+      image_gen->Start();
+  }
 
   if (as_daemon) {
     sleep(runtime_seconds > 0 ? runtime_seconds : INT_MAX);
@@ -735,7 +839,11 @@ int main(int argc, char *argv[]) {
   }
 
   // Stopping threads and wait for them to join.
-  delete image_gen;
+  if (controller != NULL) {
+      delete controller;
+  } else {
+      delete image_gen;
+  }
   delete updater;
 
   // Final thing before exit: clear screen and update once, so that

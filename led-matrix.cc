@@ -59,6 +59,7 @@ static void sleep_nanos(long nanos) {
 RGBMatrix::RGBMatrix(GPIO *io) : io_(io) {
   // Tell GPIO about all bits we intend to use.
   IoBits b;
+  brightness = 10;
   b.raw = 0;
   b.bits.output_enable = b.bits.clock = b.bits.strobe = 1;
   b.bits.r1 = b.bits.g1 = b.bits.b1 = 1;
@@ -96,10 +97,14 @@ void RGBMatrix::SetPixel(uint8_t x, uint8_t y,
     x = 127 - x;
     y = 63 - y;
   }
-  
+
   // TODO: re-map values to be luminance corrected (sometimes called 'gamma').
   // Ideally, we had like 10PWM bits for this, but we're too slow for that :/
-  
+
+  red = red * brightness / 10;
+  green = green * brightness / 10;
+  blue = blue * brightness / 10;
+
   // Scale to the number of bit planes we actually have, so that MSB matches
   // MSB of PWM.
   red   >>= 8 - kPWMBits;

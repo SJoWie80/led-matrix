@@ -16,7 +16,7 @@
       unsigned int joy_u : 1;
       unsigned int joy_d : 1;
       unsigned int row : 4;  // 7..10
-      unsigned int unused3a :1; // 11
+      unsigned int sw1 : 1;
       unsigned int joy_l : 1; // 12
       unsigned int joy_r : 1; // 13
       unsigned int unused3b : 3;  // 14..16
@@ -28,6 +28,8 @@
       unsigned int r2 : 1;   // 23
       unsigned int g2 : 1;   // 24
       unsigned int b2 : 1;   // 25
+      unsigned int unused5: 1; // 26
+      unsigned int sw2: 1;   // 27
     } bits;
     uint32_t raw;
     IoBits() : raw(0) {}
@@ -53,8 +55,12 @@ class RGBMatrix {
   // thread.
   void UpdateScreen();
 
+  void IncrementBrightness() { brightness++; if (brightness>10) { brightness = 1; } }
+  void DecrementBrightness() { brightness--; if (brightness<=0) { brightness = 10; } }
+
 private:
   GPIO *const io_;
+  int brightness;
 
   enum {
     kDoubleRows = 16,     // Physical constant of the used board.
