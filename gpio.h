@@ -36,6 +36,10 @@ class GPIO {
     ClearBits(~value & output_bits_);
   }
 
+  inline int Read() {
+      return gpio_port_[0x34 / sizeof(uint32_t)];
+  }
+
  private:
   uint32_t output_bits_;
   volatile uint32_t *gpio_port_;
