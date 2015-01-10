@@ -877,8 +877,8 @@ static int usage(const char *progname) {
           "\t       (if neither -d nor -t are supplied, waits for <RETURN>)\n");
   fprintf(stderr, "Demos, choosen with -D\n");
   fprintf(stderr, "\t0  - some rotating square\n"
-          "\t1  - forward scrolling an image (-m <scroll-ms>)\n"
-          "\t2  - backward scrolling an image (-m <scroll-ms>)\n"
+          "\t1 - forward scrolling an image (-m <scroll-ms> -P <scroll-pixel-jump>)\n"
+          "\t2 - backward scrolling an image (-m <scroll-ms> -P <scroll-pixel-jump>)\n"
           "\t3  - test image: a square\n"
           "\t4  - Pulsing color\n"
           "\t5  - Grayscale Block\n"
@@ -899,6 +899,7 @@ int main(int argc, char *argv[]) {
   int chain = 1;
   int scroll_ms = 30;
   int pwm_bits = -1;
+  int scroll_jumps = 1;
   bool large_display = false;
   bool verry_large_display = false;
   bool do_luminance_correct = true;
@@ -906,12 +907,16 @@ int main(int argc, char *argv[]) {
   const char *demo_parameter = NULL;
 
   int opt;
-  while ((opt = getopt(argc, argv, "dlD:t:r:p:c:m:L:V")) != -1) {
+  while ((opt = getopt(argc, argv, "dlD:t:r:p:P:c:m:L:V")) != -1) {
     switch (opt) {
     case 'D':
       demo = atoi(optarg);
       break;
 
+    case 'P':
+    scroll_jumps = atoi(optarg);
+    break;
+	    
     case 'd':
       as_daemon = true;
       break;
@@ -1032,7 +1037,7 @@ int main(int argc, char *argv[]) {
   case 2:
     if (demo_parameter) {
       ImageScroller *scroller = new ImageScroller(canvas,
-                                                  demo == 1 ? 1 : -1,
+                                                  demo == 1 ? 1*scroll_jumps : -1*scroll_jumps,
                                                   scroll_ms);
       if (!scroller->LoadPPM(demo_parameter))
         return 1;
